@@ -4,15 +4,18 @@
 
 An ASI plugin for **GTA IV Complete Edition 1.2.0.59** that fixes two annoyances when you quit the game:
 
-- the **MMA10** error box (and the Rockstar launcher error that can follow it), and
-- the game **hanging on a black screen** for a long time before it finally closes.
+- the **MMA10** error box (and the Rockstar launcher error that can follow it),
+- the game **hanging on a black screen** for a long time before it finally closes, and
+- the game **locking up on exit** with some mod setups (new in 1.2).
 
 It only acts **while the game is closing**. During play it does nothing at all.
 
 ## Download
 
-- [`MMA10Killer_1.1.zip`](MMA10Killer_1.1.zip): the plugin (`MMA10Killer.asi`), README and licence.
-- [`MMA10Killer_source_1.1.zip`](MMA10Killer_source_1.1.zip): the complete source code and build scripts.
+- [`MMA10Killer_1.2.zip`](MMA10Killer_1.2.zip): the plugin (`MMA10Killer.asi`), README and licence.
+- [`MMA10Killer_source_1.2.zip`](MMA10Killer_source_1.2.zip): the complete source code and build scripts.
+
+Older versions are in the [releases](../../releases) and the commit history.
 
 ## Install
 
@@ -40,6 +43,11 @@ does nothing with it.
 long time collecting crash data before the process goes away. From the moment the game starts closing, MMA10Killer
 catches a crash that nothing else handled, writes one line to its log and ends the process right away.
 
+**Exit lock-up (1.2).** With some setups the shutdown code goes round in circles over the same broken data, trying
+to free the same garbage pointers again and again, and the game freezes instead of closing. MMA10Killer ends the
+process once it has seen 500 such frees, and, as a last resort, if the game still has not closed 20 seconds after
+it started shutting down.
+
 **During play it does nothing.** If MMA10 or a crash happens *while you are playing*, you still see it, and you
 should: that means something really is wrong, and hiding it could lead to worse problems later.
 
@@ -51,11 +59,17 @@ A session where it had something to do looks like:
     exit: the game tried to free 0xCDCDCDCD, which none of its heaps owns (this is what showed MMA10). Ignored.
     closing: the game's own shutdown code crashed (...). Ending the process now instead of waiting on Windows error reporting.
 
+or, for an exit lock-up:
+
+    closing: the game's shutdown code is going round in circles over broken data (500 bad frees) ...
+    closing: the game was still not closed 20 seconds after it started shutting down (stuck) ...
+
 If you only see the "Ready" and "safety net in place" lines, your setup had nothing to fix that time.
 
 ## Safety and antivirus
 
-- No threads, no network access, no files touched except its own log.
+- No network access, no files touched except its own log. One small timer thread is started only when the game
+  begins closing (the 20-second last resort); nothing runs while you play.
 - It changes one 5-byte call instruction in the game's code (after checking the exe version and the exact bytes)
   and, only at exit, one entry in the game's heap list and the process's crash handler.
 - Not packed or obfuscated; the full source is included and builds with the free LLVM tools (`build_win.cmd` on
